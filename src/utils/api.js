@@ -301,3 +301,48 @@ export const asignarDescuentoAFunko = async (descuentoData) => {
     return { success: false, message: `Error en la solicitud: ${error.message}` };
   }
 };
+
+export const obtenerFunkoPorId = async (id) => {
+  try {
+    const response = await fetch(`${BASE_URL}/funkos/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${API_TOKEN}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { success: true, data };
+    } else {
+      const errorData = await response.json();
+      return { success: false, message: errorData.message };
+    }
+  } catch (error) {
+    return { success: false, message: `Error en la solicitud: ${error.message}` };
+  }
+};
+
+export const actualizarFunko = async (id, funkoData) => {
+  try {
+    const response = await fetch(`${BASE_URL}/funkos/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${API_TOKEN}`,
+      },
+      body: JSON.stringify(funkoData),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { success: true, data };
+    } else {
+      const errorData = await response.json();
+      return { success: false, message: errorData.message };
+    }
+  } catch (error) {
+    return { success: false, message: `Error en la solicitud: ${error.message}` };
+  }
+};
