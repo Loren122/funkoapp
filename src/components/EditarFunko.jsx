@@ -46,19 +46,21 @@ const EditarFunko = () => {
         }
 
         const funkoResult = await obtenerFunkoPorId(id);
-        console.log("Datos del funko recibidos:", funkoResult);
+        // console.log("Datos del funko recibidos:", funkoResult);
         if (funkoResult.success) {
-          const funkoData = funkoResult.data;
-          const categoriasFunko = funkoData.categoría || [];
+          const funkoData = funkoResult.data.Funko || funkoResult.data;
+          // const categoriasFunko = funkoData.categoría || [];
+
+          // console.log("Datos del funko para edición:", funkoData);
 
           setFunko({
-            nombre: funkoData.nombre,
-            descripción: funkoData.descripción,
-            is_backlight: funkoData.is_backlight,
-            stock: funkoData.stock,
-            precio: funkoData.precio,
-            imagen: funkoData.imagen,
-            categoría: categoriasFunko.map((c) => c.idCategoria),
+            nombre: funkoData.nombre || "",
+            descripción: funkoData.descripción || "",
+            is_backlight: funkoData.is_backlight || "",
+            stock: funkoData.stock || 0,
+            precio: funkoData.precio || 0,
+            imagen: funkoData.imagen?.idImagen || null,
+            categoría: (funkoData.categoría || []).map((c) => c.idCategoria),
           });
 
           if (funkoData.descuentos && funkoData.descuentos.length > 0) {
@@ -94,7 +96,7 @@ const EditarFunko = () => {
 
   const limpiarImagen = () => {
     setImagenArchivo(null);
-    setPreviewUrl(null);
+    setPreviewUrl(funko.imagen ? previewUrl : null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -125,12 +127,15 @@ const EditarFunko = () => {
     e.preventDefault();
     setError(null);
 
+    // console.log("Estado actual del funko:", funko);
+
     let idImagen = funko.imagen;
 
     if (imagenArchivo) {
       const resultado = await subirImagen(imagenArchivo);
       if (resultado.success) {
         idImagen = resultado.data.idImagen;
+        // console.log("Nueva imagen subida. ID:", idImagen);
       } else {
         alert(`Error al subir imagen: ${resultado.message}`);
         return;
@@ -138,9 +143,16 @@ const EditarFunko = () => {
     }
 
     const datosParaEnviar = {
-      ...funko,
+      nombre: funko.nombre,
+      descripción: funko.descripción,
+      is_backlight: Boolean(funko.is_backlight),
+      stock: Number(funko.stock),
+      precio: parseFloat(funko.precio),
       imagen: idImagen,
+      categoría: funko.categoría.map((id) => Number(id)),
     };
+
+    // console.log("Datos a enviar para actualización:", datosParaEnviar);
 
     if (descuentoSeleccionado) {
       const hoy = new Date();
@@ -152,43 +164,50 @@ const EditarFunko = () => {
       }
     }
 
-    const resultadoActualizacion = await actualizarFunko(id, datosParaEnviar);
-    if (resultadoActualizacion.success) {
-      if (descuentoSeleccionado) {
-        if (
-          !descuentoActual ||
-          descuentoActual.idDescuento !== parseInt(descuentoSeleccionado)
-        ) {
-          const descuentoData = {
-            funko: id,
-            descuento: parseInt(descuentoSeleccionado),
-            fecha_inicio: new Date().toISOString().split("T")[0],
-            fecha_expiracion: fechaExpiracion,
-          };
-
-          const resultadoDescuento = await asignarDescuentoAFunko(
-            descuentoData
-          );
-          if (!resultadoDescuento.success) {
-            console.error(
-              "Error al asignar descuento:",
-              resultadoDescuento.message
+    try {
+      const resultadoActualizacion = await actualizarFunko(id, datosParaEnviar);
+      // console.log("Respuesta de actualización:", resultadoActualizacion);
+      if (resultadoActualizacion.success) {
+        if (descuentoSeleccionado) {
+          if (
+            !descuentoActual ||
+            descuentoActual.idDescuento !== parseInt(descuentoSeleccionado)
+          ) {
+            const descuentoData = {
+              funko: id,
+              descuento: parseInt(descuentoSeleccionado),
+              fecha_inicio: new Date().toISOString().split("T")[0],
+              fecha_expiracion: fechaExpiracion,
+            };
+  
+            const resultadoDescuento = await asignarDescuentoAFunko(
+              descuentoData
             );
-            alert(
-              "Funko actualizado, pero hubo un error al asignar el descuento."
-            );
+            if (!resultadoDescuento.success) {
+              console.error(
+                "Error al asignar descuento:",
+                resultadoDescuento.message
+              );
+              alert(
+                "Funko actualizado, pero hubo un error al asignar el descuento."
+              );
+            }
           }
+        } else if (descuentoActual) {
+          // Si se quitó el descuento pero había uno activo, deberia eliminar el descuento.
+          // esto solo avisa pero no hace nada (hacer despues)
+          console.log("Se quitó el descuento existente");
         }
-      } else if (descuentoActual) {
-        // Si se quitó el descuento pero había uno activo, deberia eliminar el descuento.
-        // esto solo avisa pero no hace nada (hacer despues)
-        console.log("Se quitó el descuento existente");
+  
+        alert("Funko actualizado exitosamente!");
+        navigate("/listar-funkos");
+      } else {
+        const errorMsg = resultadoActualizacion.message || resultadoActualizacion.error || "Error desconocido al actualizar";
+        alert(`Error al actualizar funko: ${errorMsg}`);
       }
-
-      alert("Funko actualizado exitosamente!");
-      navigate("/listar-funkos");
-    } else {
-      alert(`Error al actualizar funko: ${resultadoActualizacion.message}`);
+    } catch (error) {
+      console.error("Error en la actualización:", error);
+      alert(`Error en la solicitud: ${error.message}`);
     }
   };
 
@@ -287,8 +306,7 @@ const EditarFunko = () => {
             onChange={handleImagenChange}
             ref={fileInputRef}
           />
-
-          {previewUrl && (
+          {previewUrl ? (
             <div className="imagen-preview">
               <img
                 src={previewUrl}
@@ -303,10 +321,17 @@ const EditarFunko = () => {
                 x
               </button>
             </div>
-          )}
-
-          {!previewUrl && funko.imagen && (
-            <p className="imagen-actual">Imagen actual está guardada</p>
+          ) : funko.imagen ? (
+            <div className="imagen-preview">
+              <img
+                src={funko.imagen.url}
+                alt="Imagen actual"
+                style={{ maxWidth: "200px" }}
+              />
+              <p>Imagen actual</p>
+            </div>
+          ) : (
+            <p>No hay imagen</p>
           )}
         </div>
 
