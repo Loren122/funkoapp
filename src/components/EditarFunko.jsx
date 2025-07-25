@@ -71,8 +71,8 @@ const EditarFunko = () => {
         if (todosFunkodescuentos.success && todosFunkodescuentos.data) {
           const funkodescuentosArray = todosFunkodescuentos.data[0] || [];
 
-          const descuentosParaEsteFunko = funkodescuentosArray.filter(
-            // Con === no se muestra el campo descuento pre-llenado
+          const descuentosParaEsteFunko = funkodescuentosArray.filter(          
+            // eslint-disable-next-line eqeqeq
             (fd) => fd.funko == id
           );
 
