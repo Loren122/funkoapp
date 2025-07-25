@@ -279,7 +279,7 @@ export const eliminarDescuento = async (idDescuento) => {
   }
 };
 
-export const asignarDescuentoAFunko = async (descuentoData) => {
+export const asignarDescuentoAFunko = async (FunkoDescuentoData) => {
   try {
     const response = await fetch(`${BASE_URL}/funkodescuentos`, {
       method: 'POST',
@@ -287,7 +287,7 @@ export const asignarDescuentoAFunko = async (descuentoData) => {
         'Content-Type': 'application/json',
         'Authorization': `Token ${API_TOKEN}`,
       },
-      body: JSON.stringify(descuentoData),
+      body: JSON.stringify(FunkoDescuentoData),
     });
 
     if (response.ok) {
@@ -344,5 +344,86 @@ export const actualizarFunko = async (id, funkoData) => {
     }
   } catch (error) {
     return { success: false, message: `Error en la solicitud: ${error.message}` };
+  }
+};
+
+export const actualizarFunkoDescuentos = async (id, funkoDescuentoData) => {
+  try {
+    const response = await fetch(`${BASE_URL}/funkodescuentos/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${API_TOKEN}`,
+      },
+      body: JSON.stringify(funkoDescuentoData),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { success: true, data };
+    } else {
+      const errorData = await response.json();
+      return { success: false, message: errorData.message };
+    }
+  } catch (error) {
+    return { success: false, message: `Error en la solicitud: ${error.message}` };
+  }
+};
+
+export const eliminarFunkoDescuentos = async (id) => {
+  try {
+    const response = await fetch(`${BASE_URL}/funkodescuentos/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${API_TOKEN}`,
+      },
+    });
+    
+    if (response.status === 204 || response.status === 200) {
+      return { success: true, message: 'FunkoDescuento eliminado exitosamente.' };
+    } else if (response.status === 404) {
+      return { success: false, message: 'FunkoDescuento no encontrado' };
+    } else {
+      try {
+        const errorData = await response.json();
+        return { success: false, message: errorData.message || `Error ${response.status}` };
+      } catch {
+        return { success: false, message: `Error ${response.status}: ${response.statusText}` };
+      }
+    }
+  } catch (error) {
+    return { success: false, message: `Error en la solicitud: ${error.message}` };
+  }
+};
+
+export const obtenerTodosLosFunkodescuentos = async () => {
+  try {
+    const response = await fetch(`${BASE_URL}/funkodescuentos`, {
+      headers: {
+        'Authorization': `Token ${API_TOKEN}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { 
+        success: true, 
+        data,
+        status: response.status
+      };
+    } else {
+      const errorText = await response.text();
+      return { 
+        success: false, 
+        message: `Error ${response.status}: ${errorText}`,
+        status: response.status
+      };
+    }
+  } catch (error) {
+    return { 
+      success: false, 
+      message: `Error en la solicitud: ${error.message}` 
+    };
   }
 };
