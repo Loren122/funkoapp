@@ -45,8 +45,6 @@ const EditarFunko = () => {
 
           if (funkoData.imagen?.url) {
             setPreviewUrl(funkoData.imagen.url);
-          } else if (funkoData.imagen) {
-            setPreviewUrl(funkoData.imagen);
           }
         } else {
           setError(funkoResult.message || "Error al cargar el funko");
@@ -71,26 +69,10 @@ const EditarFunko = () => {
         const todosFunkodescuentos = await obtenerTodosLosFunkodescuentos();
 
         if (todosFunkodescuentos.success && todosFunkodescuentos.data) {
-          let funkodescuentosArray = [];
-
-          if (
-            Array.isArray(todosFunkodescuentos.data) &&
-            todosFunkodescuentos.data.length > 0
-          ) {
-            funkodescuentosArray = Array.isArray(todosFunkodescuentos.data[0])
-              ? todosFunkodescuentos.data[0]
-              : todosFunkodescuentos.data;
-          }
-          else if (typeof todosFunkodescuentos.data === "object") {
-            const arrayKey = Object.keys(todosFunkodescuentos.data).find(
-              (key) => Array.isArray(todosFunkodescuentos.data[key])
-            );
-            if (arrayKey) {
-              funkodescuentosArray = todosFunkodescuentos.data[arrayKey];
-            }
-          }
+          const funkodescuentosArray = todosFunkodescuentos.data[0] || [];
 
           const descuentosParaEsteFunko = funkodescuentosArray.filter(
+            // Con === no se muestra el campo descuento pre-llenado
             (fd) => fd.funko == id
           );
 
@@ -114,10 +96,6 @@ const EditarFunko = () => {
             setFechaExpiracion("");
           }
         } else {
-          console.error(
-            "Error cargando funkodescuentos:",
-            todosFunkodescuentos.message
-          );
           setDescuentoActual(null);
           setDescuentoSeleccionado("");
           setFechaExpiracion("");
