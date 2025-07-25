@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { obtenerFunkoPorId, actualizarFunko, listarCategorias, listarDescuentos, subirImagen, asignarDescuentoAFunko } from "../utils/api";
+import { obtenerFunkoPorId, actualizarFunko, listarCategorias, listarDescuentos, subirImagen, asignarDescuentoAFunko, actualizarFunkoDescuentos, eliminarFunkoDescuentos, obtenerTodosLosFunkodescuentos } from "../utils/api";
 
 const EditarFunko = () => {
   const { id } = useParams();
@@ -29,11 +29,27 @@ const EditarFunko = () => {
     const cargarDatos = async () => {
       setCargando(true);
       try {
-        const catResult = await listarCategorias();
-        if (catResult.success) {
-          setCategorias(catResult.data?.Categorias || []);
+        const funkoResult = await obtenerFunkoPorId(id);
+
+        if (funkoResult.success) {
+          const funkoData = funkoResult.data.Funko || funkoResult.data;
+          setFunko({
+            nombre: funkoData.nombre || "",
+            descripción: funkoData.descripción || "",
+            is_backlight: funkoData.is_backlight || false,
+            stock: funkoData.stock || 0,
+            precio: funkoData.precio || 0,
+            imagen: funkoData.imagen?.idImagen || null,
+            categoría: (funkoData.categoría || []).map((c) => c.idCategoria),
+          });
+
+          if (funkoData.imagen?.url) {
+            setPreviewUrl(funkoData.imagen.url);
+          } else if (funkoData.imagen) {
+            setPreviewUrl(funkoData.imagen);
+          }
         } else {
-          setError(catResult.message || "Error al cargar categorías");
+          setError(funkoResult.message || "Error al cargar el funko");
         }
 
         const descResult = await listarDescuentos();
@@ -45,36 +61,66 @@ const EditarFunko = () => {
           );
         }
 
-        const funkoResult = await obtenerFunkoPorId(id);
-        // console.log("Datos del funko recibidos:", funkoResult);
-        if (funkoResult.success) {
-          const funkoData = funkoResult.data.Funko || funkoResult.data;
-          // const categoriasFunko = funkoData.categoría || [];
+        const catResult = await listarCategorias();
+        if (catResult.success) {
+          setCategorias(catResult.data?.Categorias || []);
+        } else {
+          setError(catResult.message || "Error al cargar categorías");
+        }
 
-          // console.log("Datos del funko para edición:", funkoData);
+        const todosFunkodescuentos = await obtenerTodosLosFunkodescuentos();
 
-          setFunko({
-            nombre: funkoData.nombre || "",
-            descripción: funkoData.descripción || "",
-            is_backlight: funkoData.is_backlight || "",
-            stock: funkoData.stock || 0,
-            precio: funkoData.precio || 0,
-            imagen: funkoData.imagen?.idImagen || null,
-            categoría: (funkoData.categoría || []).map((c) => c.idCategoria),
-          });
+        if (todosFunkodescuentos.success && todosFunkodescuentos.data) {
+          let funkodescuentosArray = [];
 
-          if (funkoData.descuentos && funkoData.descuentos.length > 0) {
-            const descuentoActivo = funkoData.descuentos[0];
-            setDescuentoSeleccionado(descuentoActivo.idDescuento);
-            setFechaExpiracion(descuentoActivo.fecha_expiracion?.split("T")[0] || "");
-            setDescuentoActual(descuentoActivo);
+          if (
+            Array.isArray(todosFunkodescuentos.data) &&
+            todosFunkodescuentos.data.length > 0
+          ) {
+            funkodescuentosArray = Array.isArray(todosFunkodescuentos.data[0])
+              ? todosFunkodescuentos.data[0]
+              : todosFunkodescuentos.data;
+          }
+          else if (typeof todosFunkodescuentos.data === "object") {
+            const arrayKey = Object.keys(todosFunkodescuentos.data).find(
+              (key) => Array.isArray(todosFunkodescuentos.data[key])
+            );
+            if (arrayKey) {
+              funkodescuentosArray = todosFunkodescuentos.data[arrayKey];
+            }
           }
 
-          if (funkoData.imagen?.url) {
-            setPreviewUrl(funkoData.imagen.url);
+          const descuentosParaEsteFunko = funkodescuentosArray.filter(
+            (fd) => fd.funko == id
+          );
+
+          if (descuentosParaEsteFunko.length > 0) {
+            const descuentoActivo = descuentosParaEsteFunko[0];
+
+            setDescuentoActual({
+              idFunkoDescuento: descuentoActivo.idFunkoDescuento,
+              idDescuento: descuentoActivo.descuento,
+              fecha_inicio: descuentoActivo.fecha_inicio,
+              fecha_expiracion: descuentoActivo.fecha_expiracion,
+            });
+
+            setDescuentoSeleccionado(descuentoActivo.descuento.toString());
+            setFechaExpiracion(
+              descuentoActivo.fecha_expiracion?.split("T")[0] || ""
+            );
+          } else {
+            setDescuentoActual(null);
+            setDescuentoSeleccionado("");
+            setFechaExpiracion("");
           }
         } else {
-          setError(funkoResult.message || "Error al cargar el funko");
+          console.error(
+            "Error cargando funkodescuentos:",
+            todosFunkodescuentos.message
+          );
+          setDescuentoActual(null);
+          setDescuentoSeleccionado("");
+          setFechaExpiracion("");
         }
       } catch (error) {
         setError("Error en la carga: " + error.message);
@@ -127,15 +173,11 @@ const EditarFunko = () => {
     e.preventDefault();
     setError(null);
 
-    // console.log("Estado actual del funko:", funko);
-
     let idImagen = funko.imagen;
-
     if (imagenArchivo) {
       const resultado = await subirImagen(imagenArchivo);
       if (resultado.success) {
         idImagen = resultado.data.idImagen;
-        // console.log("Nueva imagen subida. ID:", idImagen);
       } else {
         alert(`Error al subir imagen: ${resultado.message}`);
         return;
@@ -152,62 +194,105 @@ const EditarFunko = () => {
       categoría: funko.categoría.map((id) => Number(id)),
     };
 
-    // console.log("Datos a enviar para actualización:", datosParaEnviar);
-
-    if (descuentoSeleccionado) {
-      const hoy = new Date();
-      const fechaSeleccionada = new Date(fechaExpiracion);
-
-      if (fechaSeleccionada < hoy) {
-        alert("La fecha de expiración debe ser posterior a la fecha actual.");
-        return;
-      }
-    }
-
     try {
       const resultadoActualizacion = await actualizarFunko(id, datosParaEnviar);
-      // console.log("Respuesta de actualización:", resultadoActualizacion);
-      if (resultadoActualizacion.success) {
-        if (descuentoSeleccionado) {
-          if (
-            !descuentoActual ||
-            descuentoActual.idDescuento !== parseInt(descuentoSeleccionado)
-          ) {
-            const descuentoData = {
-              funko: id,
-              descuento: parseInt(descuentoSeleccionado),
-              fecha_inicio: new Date().toISOString().split("T")[0],
-              fecha_expiracion: fechaExpiracion,
-            };
-  
-            const resultadoDescuento = await asignarDescuentoAFunko(
-              descuentoData
-            );
-            if (!resultadoDescuento.success) {
-              console.error(
-                "Error al asignar descuento:",
-                resultadoDescuento.message
-              );
-              alert(
-                "Funko actualizado, pero hubo un error al asignar el descuento."
-              );
-            }
-          }
-        } else if (descuentoActual) {
-          // Si se quitó el descuento pero había uno activo, deberia eliminar el descuento.
-          // esto solo avisa pero no hace nada (hacer despues)
-          console.log("Se quitó el descuento existente");
-        }
-  
-        alert("Funko actualizado exitosamente!");
-        navigate("/listar-funkos");
-      } else {
-        const errorMsg = resultadoActualizacion.message || resultadoActualizacion.error || "Error desconocido al actualizar";
+
+      if (!resultadoActualizacion.success) {
+        const errorMsg =
+          resultadoActualizacion.message ||
+          resultadoActualizacion.error ||
+          "Error desconocido al actualizar el funko";
         alert(`Error al actualizar funko: ${errorMsg}`);
+        return;
       }
+
+      if (descuentoSeleccionado) {
+        const descuentoId = parseInt(descuentoSeleccionado);
+        const fechaHoy = new Date().toISOString().split("T")[0];
+
+        const hoy = new Date();
+        const fechaSeleccionada = new Date(fechaExpiracion);
+
+        if (fechaSeleccionada <= hoy) {
+          alert("La fecha de expiración debe ser posterior a hoy.");
+          return;
+        }
+
+        const descuentoData = {
+          funko: parseInt(id),
+          descuento: descuentoId,
+          fecha_inicio: descuentoActual?.fecha_inicio || fechaHoy,
+          fecha_expiracion: fechaExpiracion,
+        };
+
+        if (descuentoActual) {
+          const resultadoDescuento = await actualizarFunkoDescuentos(
+            descuentoActual.idFunkoDescuento,
+            descuentoData
+          );
+
+          if (resultadoDescuento.success) {
+            setDescuentoActual({
+              ...descuentoActual,
+              idDescuento: descuentoId,
+              fecha_expiracion: fechaExpiracion,
+            });
+          } else {
+            console.error(
+              "Error actualizando descuento:",
+              resultadoDescuento.message
+            );
+            alert(
+              "Funko actualizado, pero hubo un error al actualizar el descuento."
+            );
+          }
+        }
+        else {
+          const resultadoDescuento = await asignarDescuentoAFunko(
+            descuentoData
+          );
+
+          if (resultadoDescuento.success) {
+            setDescuentoActual({
+              idFunkoDescuento: resultadoDescuento.data.idFunkoDescuento,
+              idDescuento: descuentoId,
+              fecha_inicio: fechaHoy,
+              fecha_expiracion: fechaExpiracion,
+            });
+          } else {
+            console.error(
+              "Error creando descuento:",
+              resultadoDescuento.message
+            );
+            alert(
+              "Funko actualizado, pero hubo un error al asignar el descuento."
+            );
+          }
+        }
+      }
+      else if (descuentoActual) {
+        const resultadoEliminacion = await eliminarFunkoDescuentos(
+          descuentoActual.idFunkoDescuento
+        );
+
+        if (resultadoEliminacion.success) {
+          setDescuentoActual(null);
+        } else {
+          console.error(
+            "Error eliminando descuento:",
+            resultadoEliminacion.message
+          );
+          alert(
+            "Funko actualizado, pero hubo un error al eliminar el descuento existente."
+          );
+        }
+      }
+
+      alert("Funko actualizado exitosamente!");
+      navigate("/listar-funkos");
     } catch (error) {
-      console.error("Error en la actualización:", error);
-      alert(`Error en la solicitud: ${error.message}`);
+      console.error("Error en el proceso de actualización:", error);
+      alert(`Ocurrió un error inesperado: ${error.message}`);
     }
   };
 
