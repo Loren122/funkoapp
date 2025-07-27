@@ -107,7 +107,6 @@ const CrearFunko = () => {
 
     if (imagenArchivo) {
       const resultado = await subirImagen(imagenArchivo);
-
       if (resultado.success) {
         idImagen = resultado.data.idImagen;
       } else {

@@ -152,6 +152,7 @@ const EditarFunko = () => {
     setError(null);
 
     let idImagen = funko.imagen;
+    
     if (imagenArchivo) {
       const resultado = await subirImagen(imagenArchivo);
       if (resultado.success) {
