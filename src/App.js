@@ -9,6 +9,7 @@ import CrearDescuento from './components/CrearDescuento';
 import ListarDescuentos from './components/ListarDescuentos.jsx'
 import ListarVentas from './components/ListarVentas.jsx';
 import EditarFunko from './components/EditarFunko.jsx'
+import DetalleCompra from './components/DetalleCompra.jsx';
 import './App.css';
 
 
@@ -28,6 +29,7 @@ function App() {
             <Route path="/listar-descuentos" element={<ListarDescuentos />} />
             <Route path="/listar-ventas" element={<ListarVentas />} />
             <Route path="/editar-funko/:id" element={<EditarFunko />} />
+            <Route path="/listar-ventas/:id" element={<DetalleCompra />} />
           </Routes>
         </div>
       </div>
