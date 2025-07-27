@@ -427,3 +427,33 @@ export const obtenerTodosLosFunkodescuentos = async () => {
     };
   }
 };
+
+export const actualizarEstadoCompra = async (idCompra, nuevoEstado) => {
+  try {
+    const response = await fetch(`${BASE_URL}/compras/${idCompra}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${API_TOKEN}`,
+      },
+      body: JSON.stringify({ estado: nuevoEstado })
+    });
+
+    if (response.status === 200) {
+      const data = await response.json();
+      return { success: true, data };
+    } else {
+      const errorData = await response.json();
+      return { 
+        success: false, 
+        status: response.status,
+        message: errorData.message || 'Error al actualizar la compra'
+      };
+    }
+  } catch (error) {
+    return { 
+      success: false, 
+      message: `Error en la solicitud: ${error.message}` 
+    };
+  }
+};
