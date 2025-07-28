@@ -53,10 +53,14 @@ const DetalleCompra = () => {
           <strong>Dirección:</strong> {compra.direccion.calle}{" "}
           {compra.direccion.numero}
         </p>
-        {compra.direccion.piso && compra.direccion.depto && (
+        {compra.direccion.piso && (
           <p>
-            <strong>Piso/Depto:</strong> {compra.direccion.piso}{" "}
-            {compra.direccion.depto}
+            <strong>Piso:</strong> {compra.direccion.piso}
+          </p>
+        )}
+        {compra.direccion.depto && (
+          <p>
+            <strong>Depto:</strong> {compra.direccion.depto}
           </p>
         )}
         <p>
