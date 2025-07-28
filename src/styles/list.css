@@ -129,6 +129,10 @@ body {
     transition: background-color 0.2s;
 }
 
+#btn-eli-cat-des {
+    padding-left: 28px;
+}
+
 .btn-eliminar:disabled {
     opacity: 0.5;
     cursor: not-allowed;

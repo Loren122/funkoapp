@@ -102,6 +102,7 @@ const ListarDescuentos = () => {
                         <button
                           onClick={() => handleEliminar(descuento.idDescuento)}
                           className="btn-eliminar"
+                          id="btn-eli-cat-des"
                           title="Eliminar descuento"
                           disabled={eliminando}
                         >
