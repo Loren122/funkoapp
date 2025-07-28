@@ -1,21 +1,33 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { obtenerDetalleCompra } from "../utils/api";
+import { obtenerDetalleCompra, obtenerDetalleDireccion } from "../utils/api";
 import '../styles/detail.css'
 
 const DetalleCompra = () => {
   const { id } = useParams();
   const [compra, setCompra] = useState(null);
+  const [direccionDetallada, setDireccionDetallada] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const cargarDetalles = async () => {
       try {
+        setLoading(true);
+        setError(null);
+
         const resultado = await obtenerDetalleCompra(id);
 
         if (resultado.success) {
           setCompra(resultado.data);
+
+          if (resultado.data.direccion && resultado.data.direccion.idDireccion) {
+            const resultadoDireccion = await obtenerDetalleDireccion(resultado.data.direccion.idDireccion);
+
+            if (resultadoDireccion.success) {
+              setDireccionDetallada(resultadoDireccion.data);
+            }
+          }
         } else {
           setError(resultado.message || "Error al cargar detalles");
         }
@@ -55,22 +67,28 @@ const DetalleCompra = () => {
           <strong>Dirección:</strong> {compra.direccion.calle}{" "}
           {compra.direccion.numero}
         </p>
-        {compra.direccion.piso && (
+        {compra.direccion.piso && compra.direccion.depto && (
           <p>
             <strong>Piso:</strong> {compra.direccion.piso}
-          </p>
-        )}
-        {compra.direccion.depto && (
-          <p>
+            {"︱"}
             <strong>Depto:</strong> {compra.direccion.depto}
           </p>
         )}
         <p>
           <strong>Código Postal:</strong> {compra.direccion.codigo_postal}
         </p>
-        <p>
-          <strong>Ciudad:</strong> {compra.direccion.ciudad}
-        </p>
+        {direccionDetallada ? (
+          <>
+            <p>
+              <strong>Ciudad:</strong> {direccionDetallada.ciudad}
+            </p>
+            <p>
+              <strong>Provincia:</strong> {direccionDetallada.provincia}
+            </p>
+          </>
+        ) : (
+          <p>Cargando detalles de ubicación...</p>
+        )}
       </div>
 
       <div className="seccion">
