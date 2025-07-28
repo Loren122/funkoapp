@@ -33,6 +33,8 @@ const DetalleCompra = () => {
   if (error) return <p style={{ color: "red" }}>{error}</p>;
   if (!compra) return <p>No se encontró la compra</p>;
 
+  const costoEnvio = compra.total - compra.subtotal;
+
   return (
     <div className="detalle-compra">
       <h2>Detalles de Compra #{compra.idCompra}</h2>
@@ -94,6 +96,9 @@ const DetalleCompra = () => {
           </tbody>
         </table>
         <div className="totales">
+          <p>
+            <strong>Costo de envío:</strong> ${costoEnvio.toFixed(2)}
+          </p>
           <p>
             <strong>Subtotal:</strong> ${compra.subtotal.toFixed(2)}
           </p>
