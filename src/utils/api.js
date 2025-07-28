@@ -479,3 +479,25 @@ export const obtenerDetalleCompra = async (idCompra) => {
     return { success: false, message: `Error en la solicitud: ${error.message}` };
   }
 };
+
+export const obtenerDetalleDireccion = async (idDireccion) => {
+  try {
+    const response = await fetch(`${BASE_URL}/direcciones/${idDireccion}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${API_TOKEN}`,
+      },
+    });
+
+    if (response.status === 200) {
+      const data = await response.json();
+      return { success: true, data };
+    } else {
+      const errorData = await response.json();
+      return { success: false, message: errorData.message || 'Error al obtener la dirección' };
+    }
+  } catch (error) {
+    return { success: false, message: `Error en la solicitud: ${error.message}` };
+  }
+};
